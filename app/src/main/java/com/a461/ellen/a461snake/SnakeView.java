@@ -31,13 +31,13 @@ public class SnakeView extends GridView {
     private static final int DOWN = 2;
     private static final int RIGHT = 3;
     private static final int LEFT = 4;
-    private static final long moveDelay = 600;
+    private static final long moveDelay = 500;
 
     // treasure & snake drawables, reserve 0 for empty tile
     private static final int APPLE = 1;
     private static final int SNAKE_HEAD = 2;
     private static final int SNAKE_BODY = 3;
-    private static final int WALL = 4;
+    private static final int LEAF = 4;
 
     // status to inform user
     private TextView statusText;
@@ -72,9 +72,12 @@ public class SnakeView extends GridView {
         }
     }
 
+    public SnakeView(Context context) {
+        this(context, null);
+    }
+
     public SnakeView(Context context, AttributeSet attributes) {
-        super(context, attributes);
-        initializeView();
+        this(context, attributes, 0);
     }
 
     public SnakeView(Context context, AttributeSet attributes, int style) {
@@ -85,23 +88,24 @@ public class SnakeView extends GridView {
     private void initializeView() {
         setFocusable(true);
 
-        resetTiles(4);
+        resetTiles(5);
         loadTile(APPLE, ContextCompat.getDrawable(this.getContext(), R.drawable.apple));
         loadTile(SNAKE_HEAD, ContextCompat.getDrawable(this.getContext(), R.drawable.snakehead));
         loadTile(SNAKE_BODY, ContextCompat.getDrawable(this.getContext(), R.drawable.snakebody));
-        loadTile(WALL, ContextCompat.getDrawable(this.getContext(), R.drawable.leaf));
+        loadTile(LEAF, ContextCompat.getDrawable(this.getContext(), R.drawable.leaf));
     }
 
     private void initializeGame() {
         snakePos.clear();
-        otherSnakePos.clear();
+        // otherSnakePos.clear();
         applePos = null;
+        int startY = numRows - 2;
 
-        snakePos.add(new Point(5, 0));
-        snakePos.add(new Point(4, 0));
-        snakePos.add(new Point(3, 0));
-        snakePos.add(new Point(2, 0));
-        snakePos.add(new Point(1, 0));
+        snakePos.add(new Point(5, startY));
+        snakePos.add(new Point(4, startY));
+        snakePos.add(new Point(3, startY));
+        snakePos.add(new Point(2, startY));
+        snakePos.add(new Point(1, startY));
 
         nextDirection = UP;
         genNewApple();
@@ -136,6 +140,7 @@ public class SnakeView extends GridView {
                     initializeGame();
                     setMode(RUNNING);
                     update();
+                    System.out.println("set to running");
                     return true;
                 }
 
@@ -146,15 +151,19 @@ public class SnakeView extends GridView {
                 }
 
                 nextDirection = (currentDirection == DOWN) ? currentDirection : UP;
+                System.out.println("pressed up");
                 return true;
             case KeyEvent.KEYCODE_DPAD_DOWN:
                 nextDirection = (currentDirection == UP) ? currentDirection : DOWN;
+                System.out.println("pressed down");
                 return true;
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 nextDirection = (currentDirection == RIGHT) ? currentDirection : LEFT;
+                System.out.println("pressed left");
                 return true;
             case KeyEvent.KEYCODE_DPAD_RIGHT:
                 nextDirection = (currentDirection == LEFT) ? currentDirection : RIGHT;
+                System.out.println("pressed right");
                 return true;
             default:
                 return super.onKeyDown(keyCode, m);
@@ -193,8 +202,8 @@ public class SnakeView extends GridView {
 
             if (now - lastMove > moveDelay) {
                 clearTiles();
-                //updateWalls();
                 updateSnakes();
+                updateWalls();
                 setTile(APPLE, applePos.x, applePos.y);
                 lastMove = now;
             }
@@ -209,6 +218,7 @@ public class SnakeView extends GridView {
         Point head = snakePos.get(0);
         Point newHead = new Point(1, 1);
         currentDirection = nextDirection;
+        System.out.println("updating snake");
 
         switch (currentDirection) {
             case RIGHT:
@@ -228,6 +238,7 @@ public class SnakeView extends GridView {
         // check for collision with itself
         if (snakePos.contains(newHead)) {
             setMode(LOST);
+            System.out.println("collision with itself");
             return;
         }
 
@@ -236,6 +247,7 @@ public class SnakeView extends GridView {
         // check for collision with walls
         if ((newHead.x < 1) || (newHead.y < 1) || (newHead.x > numColumns - 2) || (newHead.y > numRows - 2)) {
             setMode(LOST);
+            System.out.println("collision detected");
             return;
         }
 
@@ -259,6 +271,17 @@ public class SnakeView extends GridView {
             } else {
                 setTile(SNAKE_BODY, p.x, p.y);
             }
+        }
+    }
+    
+    private void updateWalls() {
+        for (int i = 0; i < numColumns; i++) {
+            setTile(LEAF, i, 0);
+            setTile(LEAF, i, numRows - 1);
+        }
+        for (int j = 1; j < numRows - 1; j++) {
+            setTile(LEAF, 0, j);
+            setTile(LEAF, numColumns - 1, j);
         }
     }
 }

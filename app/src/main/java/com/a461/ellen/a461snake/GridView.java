@@ -13,7 +13,7 @@ import android.view.View;
 public class GridView extends View {
 
     // # of tiles in grid & size of each tile
-    protected static int tileSize;
+    protected static int tileSize = 48;
     protected static int numColumns;
     protected static int numRows;
 
@@ -26,9 +26,9 @@ public class GridView extends View {
     // what to draw at each cell
     private int[][] grid;
 
-    public GridView(Context context, AttributeSet attributes) {
-        this(context, attributes, 0);
-    }
+//    public GridView(Context context, AttributeSet attributes) {
+//        this(context, attributes, 0);
+//    }
 
     public GridView(Context context, AttributeSet attributes, int style) {
         super(context, attributes, style);
@@ -64,6 +64,7 @@ public class GridView extends View {
 
     // map key with drawable icon
     public void loadTile(int key, Drawable tile) {
+        // System.out.println("\nTILE SIZE: " + tileSize);
         Bitmap b = Bitmap.createBitmap(tileSize, tileSize, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(b);
         tile.setBounds(0, 0, tileSize, tileSize);
