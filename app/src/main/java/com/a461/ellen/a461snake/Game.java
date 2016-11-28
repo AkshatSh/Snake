@@ -4,7 +4,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.TextView;
+
+import static com.a461.ellen.a461snake.R.id.button;
 
 public class Game extends AppCompatActivity {
     private SnakeView sv;
@@ -20,7 +23,10 @@ public class Game extends AppCompatActivity {
         setContentView(R.layout.activity_game);
 
         sv = (SnakeView) findViewById(R.id.snake_game);
-        sv.setTextView((TextView) findViewById(R.id.text));
+        CustomTextView status = (CustomTextView) findViewById(R.id.text);
+        CustomTextView score = (CustomTextView) findViewById(R.id.score);
+        Button pauseButton = (Button) findViewById(R.id.button);
+        sv.setViews(status, score, pauseButton);
         sv.setMode(SnakeView.READY);
     }
 

@@ -8,4 +8,8 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="textview" parent="@android:style/Widget.TextView">
+        <item name="com.a461.ellen.a461snake:font">fonts/androidnation.ttf</item>
+    </style>
+
 </resources>

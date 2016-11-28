@@ -8,6 +8,7 @@ import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -40,7 +41,9 @@ public class SnakeView extends GridView {
     private static final int LEAF = 4;
 
     // status to inform user
-    private TextView statusText;
+    private CustomTextView statusText;
+    private CustomTextView scoreBoard;
+    private Button pauseButton;
 
     private long score = 0;
     private long lastMove;
@@ -110,6 +113,9 @@ public class SnakeView extends GridView {
         nextDirection = UP;
         genNewApple();
         score = 0;
+        scoreBoard.setText("SCORE: " + score);
+        // don't make visible if multiplayer game
+        pauseButton.setVisibility(View.VISIBLE);
     }
 
     private void genNewApple() {
@@ -128,8 +134,26 @@ public class SnakeView extends GridView {
         applePos = appleLoc;
     }
 
-    public void setTextView(TextView view) {
-        statusText = view;
+    public void setViews(CustomTextView statusView, CustomTextView scoreView, Button button) {
+        statusText = statusView;
+        scoreBoard = scoreView;
+
+        pauseButton = button;
+        pauseButton.setVisibility(View.INVISIBLE);
+        pauseButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (currentMode == PAUSE) {
+                    v.setBackgroundResource(R.drawable.pause);
+                    setMode(RUNNING);
+                    update();
+                } else {
+                    v.setBackgroundResource(R.drawable.play);
+                    setMode(PAUSE);
+                    update();
+                }
+            }
+        });
     }
 
     @Override
@@ -140,7 +164,6 @@ public class SnakeView extends GridView {
                     initializeGame();
                     setMode(RUNNING);
                     update();
-                    System.out.println("set to running");
                     return true;
                 }
 
@@ -176,6 +199,7 @@ public class SnakeView extends GridView {
 
         if (currentMode == RUNNING && oldMode != RUNNING) {
             statusText.setVisibility(View.INVISIBLE);
+            scoreBoard.setVisibility(View.VISIBLE);
             update();
             return;
         }
@@ -183,7 +207,7 @@ public class SnakeView extends GridView {
         CharSequence s = "";
         switch(currentMode) {
             case PAUSE:
-                s = "PAUSED\nPress up to resume";
+                s = "PAUSED\nPress play or up to resume";
                 break;
             case READY:
                 s = "Press up to start";
@@ -200,6 +224,7 @@ public class SnakeView extends GridView {
         if (currentMode == RUNNING) {
             long now = System.currentTimeMillis();
 
+            // if resuming game
             if (now - lastMove > moveDelay) {
                 clearTiles();
                 updateSnakes();
@@ -218,7 +243,6 @@ public class SnakeView extends GridView {
         Point head = snakePos.get(0);
         Point newHead = new Point(1, 1);
         currentDirection = nextDirection;
-        System.out.println("updating snake");
 
         switch (currentDirection) {
             case RIGHT:
@@ -255,6 +279,7 @@ public class SnakeView extends GridView {
         if (newHead.equals(applePos)) {
             genNewApple();
             score++;
+            scoreBoard.setText("SCORE: " + score);
             growSnake = true;
         }
 

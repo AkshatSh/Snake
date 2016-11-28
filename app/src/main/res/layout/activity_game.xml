@@ -11,6 +11,7 @@ android:layout_height="match_parent">
     android:id="@+id/snake_game"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/background"
     tileSize = "24"
     />
 
@@ -18,16 +19,46 @@ android:layout_height="match_parent">
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <TextView
+    <com.a461.ellen.a461snake.CustomTextView
+        style="@style/textview"
         android:id="@+id/text"
         android:text="@string/app_name"
         android:visibility="visible"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
-        android:gravity="center_horizontal"
-        android:textColor="#ff8888ff"
+        android:gravity="center"
+        android:textColor="#000000"
         android:textSize="24sp"
+        android:layout_marginLeft="50dp"
+        android:layout_marginRight="50dp"
+        android:background="@drawable/rounded_corner"
+
+        />
+
+    <com.a461.ellen.a461snake.CustomTextView
+        style="@style/textview"
+        android:id="@+id/score"
+        android:text="SCORE: 0"
+        android:visibility="visible"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="false"
+        android:gravity="top"
+        android:textColor="#000000"
+        android:textSize="24sp"
+        android:layout_marginTop="10dp"
+        />
+
+    <Button
+        android:id="@+id/button"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_alignParentTop = "true"
+        android:layout_alignParentRight="true"
+        android:layout_margin="5dp"
+        android:background="@drawable/pause"
         />
 </RelativeLayout>
 

@@ -11,6 +11,8 @@ import android.util.AttributeSet;
 import android.view.View;
 
 public class GridView extends View {
+    // leave space on top for score card and pause button
+    private static final int TOP_OFFSET = 120;
 
     // # of tiles in grid & size of each tile
     protected static int tileSize = 48;
@@ -26,10 +28,6 @@ public class GridView extends View {
     // what to draw at each cell
     private int[][] grid;
 
-//    public GridView(Context context, AttributeSet attributes) {
-//        this(context, attributes, 0);
-//    }
-
     public GridView(Context context, AttributeSet attributes, int style) {
         super(context, attributes, style);
     }
@@ -40,6 +38,8 @@ public class GridView extends View {
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        // leave some space for buttons and scoreboard on top
+        h = h - TOP_OFFSET;
         numColumns = (int) Math.floor(w / tileSize);
         numRows = (int) Math.floor(h / tileSize);
 
@@ -83,7 +83,7 @@ public class GridView extends View {
                 if (tile > 0) {
                     canvas.drawBitmap(bitmapImg[tile],
                             xpadding + (i * tileSize),
-                            ypadding + (j * tileSize),
+                            TOP_OFFSET + ypadding + (j * tileSize),
                             p);
                 }
             }
