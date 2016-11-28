@@ -3,6 +3,7 @@ package com.a461.ellen.a461snake;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -12,6 +13,7 @@ import static com.a461.ellen.a461snake.R.id.button;
 
 public class Game extends AppCompatActivity {
     private SnakeView sv;
+    private Button playAgain;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,11 +29,20 @@ public class Game extends AppCompatActivity {
         CustomTextView status = (CustomTextView) findViewById(R.id.text);
         CustomTextView score = (CustomTextView) findViewById(R.id.score);
         Button pauseButton = (Button) findViewById(R.id.button);
-        sv.setViews(status, score, pauseButton);
+
+        playAgain = (Button) findViewById(R.id.playAgain);
+        playAgain.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+
+        sv.setViews(status, score, pauseButton, playAgain);
         sv.setMode(SnakeView.READY);
 
         Intent i = getIntent();
-        int numPlayers = Integer.parseInt(i.getStringExtra("numPlayers"));
+        int numPlayers = i.getIntExtra("numPlayers", 1);
 
         // if numPlayers > 1, send request to NetworksObject
         System.out.println("players: " + numPlayers);
@@ -40,6 +51,9 @@ public class Game extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        if (playAgain.isShown()) {
+            return;
+        }
         sv.setMode(SnakeView.PAUSE);
     }
 }

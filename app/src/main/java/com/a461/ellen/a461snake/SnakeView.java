@@ -42,6 +42,7 @@ public class SnakeView extends GridView {
 
     // status to inform user
     private CustomTextView statusText;
+    private Button playAgain;
     private CustomTextView scoreBoard;
     private Button pauseButton;
 
@@ -134,11 +135,13 @@ public class SnakeView extends GridView {
         applePos = appleLoc;
     }
 
-    public void setViews(CustomTextView statusView, CustomTextView scoreView, Button button) {
+    public void setViews(CustomTextView statusView, CustomTextView scoreView, Button pause, Button playagain) {
         statusText = statusView;
         scoreBoard = scoreView;
+        playAgain = playagain;
+        playAgain.setVisibility(View.INVISIBLE);
 
-        pauseButton = button;
+        pauseButton = pause;
         pauseButton.setVisibility(View.INVISIBLE);
         pauseButton.setOnClickListener(new OnClickListener() {
             @Override
@@ -147,7 +150,7 @@ public class SnakeView extends GridView {
                     v.setBackgroundResource(R.drawable.pause);
                     setMode(RUNNING);
                     update();
-                } else {
+                } else if (currentMode == RUNNING){
                     v.setBackgroundResource(R.drawable.play);
                     setMode(PAUSE);
                     update();
@@ -198,7 +201,9 @@ public class SnakeView extends GridView {
         currentMode = newMode;
 
         if (currentMode == RUNNING && oldMode != RUNNING) {
+            System.out.println("running game...");
             statusText.setVisibility(View.INVISIBLE);
+            playAgain.setVisibility(View.INVISIBLE);
             scoreBoard.setVisibility(View.VISIBLE);
             update();
             return;
@@ -207,26 +212,18 @@ public class SnakeView extends GridView {
         CharSequence s = "";
         switch(currentMode) {
             case PAUSE:
-                s = "PAUSED\nPress play or up to resume";
+                s = "PAUSED\nPress play or swipe up to resume";
                 break;
             case READY:
-                s = "Starting game...";
+                s = "Swipe up to begin";
                 break;
             case LOST:
-                s = "GAME OVER\nScore: " + score + "\nPress up to play again";
+                s = "GAME OVER\nScore: " + score;
+                playAgain.setVisibility(View.VISIBLE);
                 break;
         }
         statusText.setText(s);
         statusText.setVisibility(View.VISIBLE);
-
-        if (currentMode == READY) {
-            try {
-                wait(500);
-            } catch (Exception e) {
-                return;
-            }
-            setMode(RUNNING);
-        }
     }
 
     public void update() {

@@ -22,6 +22,7 @@ public class StartScreen extends AppCompatActivity {
 
         setContentView(R.layout.start_screen);
 
+        System.out.println("invoked start screen");
         numPlayers = 1;
         Button down = (Button) findViewById(R.id.downbutton);
         Button up = (Button) findViewById(R.id.upbutton);
@@ -32,7 +33,7 @@ public class StartScreen extends AppCompatActivity {
             public void onClick(View v) {
                 if (numPlayers > 1) {
                     numPlayers--;
-                    tv.setText(numPlayers);
+                    tv.setText("" + numPlayers);
                 }
             }
         });
@@ -41,7 +42,7 @@ public class StartScreen extends AppCompatActivity {
             public void onClick(View v) {
                 if (numPlayers < 4) {
                     numPlayers++;
-                    tv.setText(numPlayers);
+                    tv.setText("" + numPlayers);
                 }
             }
         });

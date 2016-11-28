@@ -33,7 +33,16 @@ android:layout_height="match_parent">
         android:layout_marginLeft="50dp"
         android:layout_marginRight="50dp"
         android:background="@drawable/rounded_corner"
+        />
 
+    <Button
+        android:id="@+id/playAgain"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_below="@id/text"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/replay"
         />
 
     <com.a461.ellen.a461snake.CustomTextView
