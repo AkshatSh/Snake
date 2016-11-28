@@ -1,5 +1,6 @@
 package com.a461.ellen.a461snake;
 
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Window;
@@ -28,6 +29,12 @@ public class Game extends AppCompatActivity {
         Button pauseButton = (Button) findViewById(R.id.button);
         sv.setViews(status, score, pauseButton);
         sv.setMode(SnakeView.READY);
+
+        Intent i = getIntent();
+        int numPlayers = Integer.parseInt(i.getStringExtra("numPlayers"));
+
+        // if numPlayers > 1, send request to NetworksObject
+        System.out.println("players: " + numPlayers);
     }
 
     @Override

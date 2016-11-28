@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/startscreen">
+
+    <com.a461.ellen.a461snake.CustomTextView
+        style="@style/textview"
+        android:id="@+id/instructions"
+        android:text="select number of players"
+        android:visibility="visible"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:textColor="#eeefcf"
+        android:textSize="24sp"
+        />
+
+    <Button
+        android:id="@+id/upbutton"
+        android:layout_width="75dp"
+        android:layout_height="75dp"
+        android:layout_below="@id/instructions"
+        android:layout_centerHorizontal="true"
+        android:layout_margin="10dp"
+        android:background="@drawable/up"
+        />
+
+    <com.a461.ellen.a461snake.CustomTextView
+        style="@style/textview"
+        android:id="@+id/players"
+        android:text="1"
+        android:visibility="visible"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:gravity="center"
+        android:textColor="#000000"
+        android:textSize="24sp"
+        android:layout_marginLeft="50dp"
+        android:layout_marginRight="50dp"
+        android:background="@drawable/rounded_corner"
+
+        />
+
+    <Button
+        android:id="@+id/downbutton"
+        android:layout_width="75dp"
+        android:layout_height="75dp"
+        android:layout_below="@id/players"
+        android:layout_margin="10dp"
+        android:layout_centerHorizontal="true"
+        android:background="@drawable/down"
+        />
+
+    <Button
+        android:id="@+id/startbutton"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:layout_below="@id/downbutton"
+        android:layout_marginLeft="50dp"
+        android:layout_marginRight="50dp"
+        android:layout_centerHorizontal="true"
+        android:background="@drawable/start"
+        />
+
+</RelativeLayout>

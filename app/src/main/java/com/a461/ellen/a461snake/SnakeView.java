@@ -210,7 +210,7 @@ public class SnakeView extends GridView {
                 s = "PAUSED\nPress play or up to resume";
                 break;
             case READY:
-                s = "Press up to start";
+                s = "Starting game...";
                 break;
             case LOST:
                 s = "GAME OVER\nScore: " + score + "\nPress up to play again";
@@ -218,6 +218,15 @@ public class SnakeView extends GridView {
         }
         statusText.setText(s);
         statusText.setVisibility(View.VISIBLE);
+
+        if (currentMode == READY) {
+            try {
+                wait(500);
+            } catch (Exception e) {
+                return;
+            }
+            setMode(RUNNING);
+        }
     }
 
     public void update() {
