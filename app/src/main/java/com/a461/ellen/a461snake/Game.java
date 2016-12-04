@@ -39,13 +39,17 @@ public class Game extends AppCompatActivity {
         });
 
         sv.setViews(status, score, pauseButton, playAgain);
-        sv.setMode(SnakeView.READY);
 
         Intent i = getIntent();
         int numPlayers = i.getIntExtra("numPlayers", 1);
 
         // if numPlayers > 1, send request to NetworksObject
         System.out.println("players: " + numPlayers);
+        if (numPlayers > 1) {
+            sv.setMode(SnakeView.REQUESTING);
+        } else {
+            sv.setMode(SnakeView.READY);
+        }
     }
 
     @Override

@@ -24,6 +24,7 @@ public class SnakeView extends GridView {
     public static final int READY = 1;
     public static final int RUNNING = 2;
     public static final int LOST = 3;
+    public static final int REQUESTING = 4;
 
     // directions
     private int currentDirection = UP;
@@ -46,7 +47,9 @@ public class SnakeView extends GridView {
     private CustomTextView scoreBoard;
     private Button pauseButton;
 
-    private long score = 0;
+    private int score = 0;
+    private int otherScore = 0;
+    private NetworksObject networked;
     private long lastMove;
 
     // position of snake & apple
@@ -54,7 +57,7 @@ public class SnakeView extends GridView {
     private Point applePos;
 
     // position of other snakes
-    private ArrayList<ArrayList<Point>> otherSnakePos;
+    private ArrayList<Point> otherSnakePos;
 
     // random generator for apple
     private static final Random r = new Random();
@@ -101,10 +104,13 @@ public class SnakeView extends GridView {
 
     private void initializeGame() {
         snakePos.clear();
-        // otherSnakePos.clear();
+        if (networked != null) {
+            otherSnakePos.clear();
+        }
         applePos = null;
         int startY = numRows - 2;
 
+        // TODO: assign random starting position so other snake won't collide?
         snakePos.add(new Point(5, startY));
         snakePos.add(new Point(4, startY));
         snakePos.add(new Point(3, startY));
@@ -128,8 +134,9 @@ public class SnakeView extends GridView {
 
             appleLoc = new Point(x, y);
             added = !(snakePos.contains(appleLoc));
-
-            // TODO: check if apple is in other players' snakes
+            if (networked != null) {
+                added &= !(otherSnakePos.contains(appleLoc));
+            }
         }
 
         applePos = appleLoc;
@@ -199,6 +206,15 @@ public class SnakeView extends GridView {
     public void setMode(int newMode) {
         int oldMode = currentMode;
         currentMode = newMode;
+
+        if (currentMode == REQUESTING) {
+            initializeGame();
+            statusText.setText("Searching for players...");
+            pauseButton.setVisibility(View.INVISIBLE);
+            networked = new NetworksObject(2);
+            networked.sendInitialGame(numRows, numColumns);
+            return;
+        }
 
         if (currentMode == RUNNING && oldMode != RUNNING) {
             System.out.println("running game...");
@@ -273,6 +289,13 @@ public class SnakeView extends GridView {
         }
 
         // TODO: check for collision with other snakes
+        if (networked != null) {
+            if (otherSnakePos.contains(newHead)) {
+                setMode(LOST);
+                System.out.println("collision with other snake");
+                return;
+            }
+        }
 
         // check for collision with walls
         if ((newHead.x < 1) || (newHead.y < 1) || (newHead.x > numColumns - 2) || (newHead.y > numRows - 2)) {
