@@ -212,7 +212,7 @@ public class SnakeView extends GridView implements NetworkListener {
             statusText.setText("Searching for players...");
             pauseButton.setVisibility(View.INVISIBLE);
             networked = new NetworksObject(2);
-            networked.add(this);
+            networked.set(this);
             networked.sendInitialGame(numRows, numColumns);
             return;
         }
@@ -339,7 +339,7 @@ public class SnakeView extends GridView implements NetworkListener {
         }
     }
 
-    public void moveReceived(ArrayList<Point> s, Point apple, int otherscore) {
+    public void moveReceived(ArrayList<Point> s, Point apple, int otherscore, String state) {
         otherSnakePos = s;
         if (applePos != apple) {
             applePos = apple;

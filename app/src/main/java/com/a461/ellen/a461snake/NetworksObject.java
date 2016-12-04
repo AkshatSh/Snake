@@ -16,17 +16,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
 
-public class NetworksObject implements NetworkObservable {
+public class NetworksObject implements NetworkObservable, ThreadCallback {
 
-    // implement NetworkObservable interface
-    private List<NetworkListener> listeners = new ArrayList<NetworkListener>();
+    // implement NetworkObservable
+    private NetworkListener listener = null;
 
-    public void add(NetworkListener listener) {
-        listeners.add(listener);
+    public void set(NetworkListener nl) {
+        listener = nl;
     }
 
-    public void remove(NetworkListener listener) {
-        listeners.remove(listener);
+    public void remove(NetworkListener nl) {
+        listener = null;
+    }
+
+    // implement ThreadCallback
+    public void callback(String result) {
+        decipherData(result);
     }
 
     private int numPlayers;
@@ -36,6 +41,7 @@ public class NetworksObject implements NetworkObservable {
     private ArrayList<Point> otherSnake = null;
     private int otherScore;
     private Point applePos = null;
+    private String state;
 
     public NetworksObject(int n) {
         numPlayers = n;
@@ -64,7 +70,7 @@ public class NetworksObject implements NetworkObservable {
     }
 
     private void receive() {
-        rt = new ReadThread("read thread", client);
+        rt = new ReadThread("read thread", client, this);
         rt.start();
     }
 
@@ -103,16 +109,20 @@ public class NetworksObject implements NetworkObservable {
     }
 
     private void decipherData(String message) {
+        // split string into fields
 
+        listener.moveReceived(otherSnake, applePos, otherScore, state);
     }
 
     // thread to handle all reading from server
     public class ReadThread extends Thread {
         public SocketChannel channel = null;
+        ThreadCallback c;
 
-        public ReadThread(String s, SocketChannel client) {
+        public ReadThread(String s, SocketChannel client, ThreadCallback callback) {
             super(s);
             channel = client;
+            c = callback;
         }
 
         public void run() {
@@ -131,6 +141,7 @@ public class NetworksObject implements NetworkObservable {
                         CharBuffer charBuffer = decoder.decode(bb);
                         String result = charBuffer.toString();
                         bb.clear();
+                        c.callback(result);
                     }
                 }
             } catch (Exception e) {

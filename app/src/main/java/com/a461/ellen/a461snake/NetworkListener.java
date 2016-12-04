@@ -5,5 +5,5 @@ import android.graphics.Point;
 import java.util.ArrayList;
 
 public interface NetworkListener {
-    public void moveReceived(ArrayList<Point> s, Point apple, int otherscore);
+    public void moveReceived(ArrayList<Point> s, Point apple, int otherscore, String message);
 }
