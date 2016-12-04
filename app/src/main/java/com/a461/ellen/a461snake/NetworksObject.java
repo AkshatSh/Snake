@@ -76,8 +76,12 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
 
     // for setting up initial game--request server send positions of both
     // snakes and apple given the size of the board
-    public void sendInitialGame(int rows, int cols) {
-        String data = new String("r:" + rows + "\n" + "c:" + cols + "\r\n");
+    public void sendInitialGame(int rows, int cols, ArrayList<Point> snakePos) {
+        String data = "p:";
+        for (Point p: snakePos) {
+            data += "[" + p.x + "," + p.y + "] ";
+        }
+        data += "\nr:" + rows + "\n" + "c:" + cols + "\r\n";
         System.out.println("message: \n" + data);
         try {
             ByteBuffer databb = ByteBuffer.wrap(data.getBytes());
