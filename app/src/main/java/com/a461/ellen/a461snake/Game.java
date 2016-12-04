@@ -28,6 +28,7 @@ public class Game extends AppCompatActivity {
         sv = (SnakeView) findViewById(R.id.snake_game);
         CustomTextView status = (CustomTextView) findViewById(R.id.text);
         CustomTextView score = (CustomTextView) findViewById(R.id.score);
+        CustomTextView oscore = (CustomTextView) findViewById(R.id.oscore);
         Button pauseButton = (Button) findViewById(R.id.button);
 
         playAgain = (Button) findViewById(R.id.playAgain);
@@ -38,7 +39,7 @@ public class Game extends AppCompatActivity {
             }
         });
 
-        sv.setViews(status, score, pauseButton, playAgain);
+        sv.setViews(status, score, oscore, pauseButton, playAgain);
 
         Intent i = getIntent();
         int numPlayers = i.getIntExtra("numPlayers", 1);
@@ -48,6 +49,7 @@ public class Game extends AppCompatActivity {
         if (numPlayers > 1) {
             sv.setMode(SnakeView.REQUESTING);
         } else {
+            oscore.setVisibility(View.INVISIBLE);
             sv.setMode(SnakeView.READY);
         }
     }

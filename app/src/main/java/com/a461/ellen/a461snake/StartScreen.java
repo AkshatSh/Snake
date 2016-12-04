@@ -40,7 +40,7 @@ public class StartScreen extends AppCompatActivity {
 
         up.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                if (numPlayers < 4) {
+                if (numPlayers < 2) {
                     numPlayers++;
                     tv.setText("" + numPlayers);
                 }

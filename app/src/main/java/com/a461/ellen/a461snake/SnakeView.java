@@ -47,6 +47,7 @@ public class SnakeView extends GridView implements NetworkListener {
     private CustomTextView statusText;
     private Button playAgain;
     private CustomTextView scoreBoard;
+    private CustomTextView oscoreBoard;
     private Button pauseButton;
 
     private int score = 0;
@@ -97,7 +98,7 @@ public class SnakeView extends GridView implements NetworkListener {
     private void initializeView() {
         setFocusable(true);
 
-        resetTiles(5);
+        resetTiles(6);
         loadTile(APPLE, ContextCompat.getDrawable(this.getContext(), R.drawable.apple));
         loadTile(SNAKE_HEAD, ContextCompat.getDrawable(this.getContext(), R.drawable.snakehead));
         loadTile(OTHER_SNAKE_HEAD, ContextCompat.getDrawable(this.getContext(), R.drawable.snakehead));
@@ -107,9 +108,6 @@ public class SnakeView extends GridView implements NetworkListener {
 
     private void initializeGame() {
         snakePos.clear();
-        if (networked != null) {
-            otherSnakePos.clear();
-        }
         applePos = null;
         int startY = numRows - 2;
 
@@ -123,9 +121,16 @@ public class SnakeView extends GridView implements NetworkListener {
         nextDirection = UP;
         genNewApple();
         score = 0;
-        scoreBoard.setText("SCORE: " + score);
-        // don't make visible if multiplayer game
-        pauseButton.setVisibility((networked == null) ? View.VISIBLE : View.INVISIBLE);
+        if (networked != null) {
+            otherSnakePos.clear();
+            scoreBoard.setText("YOU: " + score);
+            oscoreBoard.setText("THEM: " + otherScore);
+            pauseButton.setVisibility(View.INVISIBLE);
+        } else {
+            scoreBoard.setText("SCORE: " + score);
+            oscoreBoard.setVisibility(View.INVISIBLE);
+            pauseButton.setVisibility(View.VISIBLE);
+        }
     }
 
     private void genNewApple() {
@@ -145,9 +150,12 @@ public class SnakeView extends GridView implements NetworkListener {
         applePos = appleLoc;
     }
 
-    public void setViews(CustomTextView statusView, CustomTextView scoreView, Button pause, Button playagain) {
+    public void setViews(CustomTextView statusView, CustomTextView scoreView,
+                         CustomTextView oscoreView, Button pause, Button playagain) {
         statusText = statusView;
         scoreBoard = scoreView;
+        oscoreBoard = oscoreView;
+        oscoreBoard.setVisibility(View.INVISIBLE);
         playAgain = playagain;
         playAgain.setVisibility(View.INVISIBLE);
 
@@ -216,7 +224,7 @@ public class SnakeView extends GridView implements NetworkListener {
             statusText.setText("Searching for players...");
             pauseButton.setVisibility(View.INVISIBLE);
             networked = new NetworksObject(2);
-            networked.set(this);
+            networked.setListener(this);
             networked.sendInitialGame(numRows, numColumns, snakePos);
             return;
         }
@@ -238,6 +246,10 @@ public class SnakeView extends GridView implements NetworkListener {
             case READY:
                 s = "Swipe up to begin";
                 break;
+            case WON:
+                s = "YOU WON!\nScore: " + score;
+                playAgain.setVisibility(View.VISIBLE);
+                break;
             case LOST:
                 s = "GAME OVER\nScore: " + score;
                 playAgain.setVisibility(View.VISIBLE);
@@ -256,7 +268,9 @@ public class SnakeView extends GridView implements NetworkListener {
                 updateSnakes();
                 updateWalls();
                 setTile(APPLE, applePos.x, applePos.y);
-                networked.sendMoves(snakePos, applePos, score, (currentMode == LOST ? "lost" : ""));
+                if (networked != null) {
+                    networked.sendMoves(snakePos, applePos, score, (currentMode == LOST ? "lost" : ""));
+                }
                 lastMove = now;
             }
             redrawHandler.sleep(moveDelay);
@@ -344,6 +358,17 @@ public class SnakeView extends GridView implements NetworkListener {
     }
 
     public void moveReceived(ArrayList<Point> s, Point apple, int otherscore, String state) {
+        if (otherSnakePos != null || otherSnakePos.size() > 0) {
+            // remove current other snake
+            for (int i = 0; i < otherSnakePos.size(); i++) {
+                Point p = otherSnakePos.get(i);
+                if (i == 0) {
+                    setTile(0, p.x, p.y);
+                } else {
+                    setTile(0, p.x, p.y);
+                }
+            }
+        }
         if (state.equals("connected")) {
             if (currentMode == REQUESTING) {
                 setMode(RUNNING);

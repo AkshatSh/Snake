@@ -21,11 +21,11 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
     // implement NetworkObservable
     private NetworkListener listener = null;
 
-    public void set(NetworkListener nl) {
+    public void setListener(NetworkListener nl) {
         listener = nl;
     }
 
-    public void remove(NetworkListener nl) {
+    public void removeListener(NetworkListener nl) {
         listener = null;
     }
 
@@ -38,10 +38,6 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
     private Selector selector;
     private SocketChannel client;
     private ReadThread rt = null;
-    private ArrayList<Point> otherSnake = null;
-    private int otherScore;
-    private Point applePos = null;
-    private String state;
 
     public NetworksObject(int n) {
         numPlayers = n;
@@ -94,15 +90,8 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
 
     // delimit points by a space
     // delimit fields by a \n
-    public void sendMoves(ArrayList<Point> snakePos, Point applePos, int score, String message) {
-        System.out.println("packaging data");
-        String data = "p:";
-        for (Point p: snakePos) {
-            data += "[" + p.x + "," + p.y + "] ";
-        }
-        data += "\na:" + "[" + applePos.x + "," + applePos.y + "]";
-        data += "\ns:" + score + "\nm:" + message + "\r\n";
-        System.out.println("data: \n" + data);
+    public void sendMoves(ArrayList<Point> snakePos, Point applePos, int score, String state) {
+        String data = packageData(snakePos, applePos, score, state);
         try {
             ByteBuffer databb = ByteBuffer.wrap(data.getBytes());
             int written = client.write(databb);
@@ -112,8 +101,52 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
         }
     }
 
+    private String packageData(ArrayList<Point> snakePos, Point applePos, int score, String state) {
+        System.out.println("packaging data");
+        String data = "p:";
+        for (Point p: snakePos) {
+            data += "[" + p.x + "," + p.y + "] ";
+        }
+        data += "\na:" + "[" + applePos.x + "," + applePos.y + "]";
+        data += "\ns:" + score + "\nm:" + state + "\r\n";
+        System.out.println("data: \n" + data);
+        return data;
+    }
+
     private void decipherData(String message) {
         // split string into fields
+        ArrayList<Point> otherSnake = null;
+        int otherScore = 0;
+        Point applePos = null;
+        String state = null;
+
+        // populate positions
+        int posStart = message.indexOf(':');
+        int posEnd = message.indexOf('\n');
+        int pointStart = message.indexOf('[', posStart);
+        while (pointStart != -1) {
+            int x = message.charAt(pointStart + 1);
+            int y = message.charAt(pointStart + 3);
+            Point p = new Point(Character.getNumericValue(x), Character.getNumericValue(y));
+            otherSnake.add(p);
+            pointStart = message.indexOf('[', pointStart + 1);
+        }
+
+        // find apple pos
+        int appleStart = message.indexOf(':', posStart + 1);
+        int x = message.charAt(appleStart + 2);
+        int y = message.charAt(appleStart + 4);
+        applePos = new Point(Character.getNumericValue(x), Character.getNumericValue(y));
+
+        // find score
+        int scoreStart = message.indexOf(':', appleStart + 1);
+        int s = message.charAt(scoreStart + 1);
+        otherScore = Character.getNumericValue(s);
+
+        // find status message
+        int statusStart = message.indexOf(':', appleStart + 1);
+        int statusEnd = message.indexOf("\r\n");
+        state = message.substring(statusStart + 1, statusEnd);
 
         listener.moveReceived(otherSnake, applePos, otherScore, state);
     }
