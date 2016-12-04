@@ -14,7 +14,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.Random;
 
-public class SnakeView extends GridView {
+public class SnakeView extends GridView implements NetworkListener {
 
     private static final String TAG = "SnakeView";
 
@@ -212,6 +212,7 @@ public class SnakeView extends GridView {
             statusText.setText("Searching for players...");
             pauseButton.setVisibility(View.INVISIBLE);
             networked = new NetworksObject(2);
+            networked.add(this);
             networked.sendInitialGame(numRows, numColumns);
             return;
         }
@@ -288,7 +289,6 @@ public class SnakeView extends GridView {
             return;
         }
 
-        // TODO: check for collision with other snakes
         if (networked != null) {
             if (otherSnakePos.contains(newHead)) {
                 setMode(LOST);
@@ -337,5 +337,15 @@ public class SnakeView extends GridView {
             setTile(LEAF, 0, j);
             setTile(LEAF, numColumns - 1, j);
         }
+    }
+
+    public void moveReceived(ArrayList<Point> s, Point apple, int otherscore) {
+        otherSnakePos = s;
+        if (applePos != apple) {
+            applePos = apple;
+            otherScore = otherscore;
+        }
+
+        // update drawing of other snake
     }
 }
