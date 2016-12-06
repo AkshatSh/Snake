@@ -1,10 +1,16 @@
 package com.a461.ellen.a461snake;
 
 import android.graphics.Point;
+import android.os.AsyncTask;
 
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.SelectionKey;
@@ -34,10 +40,25 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
         decipherData(result);
     }
 
+    public void connectionEstablished(SocketChannel c) {
+        client  = c;
+        wt.client = client;
+        rt.channel = client;
+        rt.start();
+        if (client == null) {
+            System.out.println("client is null");
+        }
+        listener.connectionEstablished();
+    }
+
     private int numPlayers;
     private Selector selector;
-    private SocketChannel client;
+    private SocketChannel client = null;
     private ReadThread rt = null;
+    private WriteThread wt = null;
+    private ConnectionThread ct = null;
+    //private String url = "Sample-env.3wcenitkcy.us-east-1.elasticbeanstalk.com";
+    private String url = "108.179.153.156";
 
     public NetworksObject(int n) {
         numPlayers = n;
@@ -51,23 +72,11 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
 
     // open connection with server
     private void openConnection() {
-        // int result = 0;
-        try {
-            client = SocketChannel.open();
-            InetSocketAddress server = new InetSocketAddress("localhost", 1111);
-            client.connect(server);
-            client.configureBlocking(false);
-            selector = Selector.open();
-            client.register(selector, SelectionKey.OP_CONNECT | SelectionKey.OP_READ | SelectionKey.OP_WRITE);
-            receive();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void receive() {
+        // connect on new thread
+        ct = new ConnectionThread(client, url, this);
+        ct.start();
+        wt = new WriteThread("", client);
         rt = new ReadThread("read thread", client, this);
-        rt.start();
     }
 
     // for setting up initial game--request server send positions of both
@@ -79,26 +88,18 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
         }
         data += "\nr:" + rows + "\n" + "c:" + cols + "\r\n";
         System.out.println("message: \n" + data);
-        try {
-            ByteBuffer databb = ByteBuffer.wrap(data.getBytes());
-            int written = client.write(databb);
-            System.out.println("wrote " + written);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
+        // write to server on separate thread
+        wt.data = data;
+        wt.start();
     }
 
     // delimit points by a space
     // delimit fields by a \n
     public void sendMoves(ArrayList<Point> snakePos, Point applePos, int score, String state) {
         String data = packageData(snakePos, applePos, score, state);
-        try {
-            ByteBuffer databb = ByteBuffer.wrap(data.getBytes());
-            int written = client.write(databb);
-            System.out.println("wrote " + written);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        wt.data = data;
+        wt.start();
     }
 
     private String packageData(ArrayList<Point> snakePos, Point applePos, int score, String state) {
@@ -150,59 +151,137 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
 
         listener.moveReceived(otherSnake, applePos, otherScore, state);
     }
+}
 
-    // thread to handle all reading from server
-    public class ReadThread extends Thread {
-        public SocketChannel channel = null;
-        ThreadCallback c;
 
-        public ReadThread(String s, SocketChannel client, ThreadCallback callback) {
-            super(s);
-            channel = client;
-            c = callback;
+class ConnectionThread extends Thread {
+    public SocketChannel client;
+    String url;
+    Selector selector;
+    ThreadCallback c;
+
+    public ConnectionThread(SocketChannel channel, String u, ThreadCallback callback) {
+        System.out.println("creating new connection thread");
+        url = u;
+        client = channel;
+        c = callback;
+    }
+
+    public void run() {
+        try {
+            System.out.println("running connection");
+            int port = sendHttpGet(url);
+            client = SocketChannel.open();
+            System.out.println("opened connection");
+            InetAddress host = InetAddress.getByName(url);
+            System.out.println("host: " + host.getHostAddress());
+            InetSocketAddress server = new InetSocketAddress(host.getHostAddress(), port);
+            client.connect(server);
+            client.configureBlocking(false);
+            selector = Selector.open();
+            client.register(selector, SelectionKey.OP_CONNECT | SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+            System.out.println("finished connection");
+            c.connectionEstablished(client);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+    }
 
-        public void run() {
-            System.out.println("reading");
-            int numRead = 0;
-            ByteBuffer bb = ByteBuffer.allocate(2048);
-            try {
-                while (true) {
-                    while((numRead = client.read(bb)) != -1) {
-                        if (numRead == 0) {
-                            continue;
-                        }
-                        bb.flip();
-                        Charset cs = Charset.forName("utf-8");
-                        CharsetDecoder decoder = cs.newDecoder();
-                        CharBuffer charBuffer = decoder.decode(bb);
-                        String result = charBuffer.toString();
-                        bb.clear();
-                        c.callback(result);
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+    private int sendHttpGet(String url) throws Exception {
+        //String address = "http://" + url + "/api/games/create";
+        String address = "http://" + url + ":8080/api/games/create";
+        //URL urlObject = new URL("http", url, -1, "/");
+        URL urlObject = new URL(address);
+        HttpURLConnection connection = (HttpURLConnection) urlObject.openConnection();
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("User-Agent", "Snake");
+
+        int responseCode = connection.getResponseCode();
+        System.out.println("Sent POST request to " + url);
+        System.out.println("response code: " + responseCode);
+
+        BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+        String inputLine;
+        StringBuffer response = new StringBuffer();
+
+        inputLine = in.readLine();
+        System.out.println("response: " + inputLine);
+        in.close();
+
+        int port = Integer.parseInt(inputLine);
+        return port;
+    }
+}
+
+class WriteThread extends Thread {
+    public String data;
+    public SocketChannel client;
+
+    public WriteThread(String s, SocketChannel c) {
+        data = s;
+        client = c;
+    }
+
+    public void run() {
+        try {
+            if (client == null) {
+                System.out.println("client is null");
+                return;
             }
+            if (data == null) {
+                System.out.println("data is null");
+                return;
+            }
+            if (data.equals("")) {
+                System.out.println("data is empty");
+                return;
+            }
+            ByteBuffer databb = ByteBuffer.wrap(data.getBytes());
+            int written = client.write(databb);
+            System.out.println("wrote " + written);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
 
-//
-//class NetworkThread implements Runnable {
-//    private SocketChannel server;
-//    Selector selector;
-//
-//    public NetworkThread(SocketChannel channel) throws Exception {
-//        server = channel;
-//    }
-//
-//    public void run() {
-//        try {
-//            selector = Selector.open();
-//            server.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
-//}
+// thread to handle all reading from server
+class ReadThread extends Thread {
+    public SocketChannel channel = null;
+    ThreadCallback c;
+
+    public ReadThread(String s, SocketChannel client, ThreadCallback callback) {
+        super(s);
+        channel = client;
+        c = callback;
+    }
+
+    public void run() {
+        if (channel == null) {
+            System.out.println("client is null");
+            return;
+        }
+        System.out.println("reading");
+        int numRead = 0;
+        ByteBuffer bb = ByteBuffer.allocate(2048);
+        try {
+            while (true) {
+                while((numRead = channel.read(bb)) != -1) {
+                    if (numRead == 0) {
+                        continue;
+                    }
+                    bb.flip();
+                    Charset cs = Charset.forName("utf-8");
+                    CharsetDecoder decoder = cs.newDecoder();
+                    CharBuffer charBuffer = decoder.decode(bb);
+                    String result = charBuffer.toString();
+                    bb.clear();
+                    System.out.println("read " + result);
+                    c.callback(result);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}

@@ -48,6 +48,16 @@ public class GridView extends View {
 
         grid = new int[numColumns][numRows];
         clearTiles();
+
+        System.out.println("screen size changed " + oldw + "x" + oldh + " : " + w + "x" + h);
+        if (oldw == 0 && oldh == 0 && w > 0 && h > 0) {
+            screenCreated();
+        }
+    }
+
+
+    public void screenCreated() {
+
     }
 
     public void clearTiles() {

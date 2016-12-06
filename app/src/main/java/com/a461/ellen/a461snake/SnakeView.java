@@ -54,6 +54,8 @@ public class SnakeView extends GridView implements NetworkListener {
     private int otherScore = 0;
     private NetworksObject networked;
     private long lastMove;
+    boolean connectionEstablished = false;
+    boolean screenCreated = false;
 
     // position of snake & apple
     private ArrayList<Point> snakePos = new ArrayList<Point>();
@@ -96,6 +98,7 @@ public class SnakeView extends GridView implements NetworkListener {
     }
 
     private void initializeView() {
+        System.out.println("9. board size " + numRows + " x " + numColumns);
         setFocusable(true);
 
         resetTiles(6);
@@ -107,6 +110,7 @@ public class SnakeView extends GridView implements NetworkListener {
     }
 
     private void initializeGame() {
+        System.out.println("8. board size " + numRows + " x " + numColumns);
         snakePos.clear();
         applePos = null;
         int startY = numRows - 2;
@@ -122,7 +126,10 @@ public class SnakeView extends GridView implements NetworkListener {
         genNewApple();
         score = 0;
         if (networked != null) {
-            otherSnakePos.clear();
+            if (otherSnakePos != null) {
+                otherSnakePos.clear();
+            }
+
             scoreBoard.setText("YOU: " + score);
             oscoreBoard.setText("THEM: " + otherScore);
             pauseButton.setVisibility(View.INVISIBLE);
@@ -134,6 +141,7 @@ public class SnakeView extends GridView implements NetworkListener {
     }
 
     private void genNewApple() {
+        System.out.println("6. board size " + numRows + " x " + numColumns);
         Point appleLoc = null;
         boolean added = false;
         while (!added) {
@@ -142,7 +150,7 @@ public class SnakeView extends GridView implements NetworkListener {
 
             appleLoc = new Point(x, y);
             added = !(snakePos.contains(appleLoc));
-            if (networked != null) {
+            if (networked != null && otherSnakePos != null) {
                 added &= !(otherSnakePos.contains(appleLoc));
             }
         }
@@ -152,6 +160,7 @@ public class SnakeView extends GridView implements NetworkListener {
 
     public void setViews(CustomTextView statusView, CustomTextView scoreView,
                          CustomTextView oscoreView, Button pause, Button playagain) {
+        System.out.println("5. board size " + numRows + " x " + numColumns);
         statusText = statusView;
         scoreBoard = scoreView;
         oscoreBoard = oscoreView;
@@ -182,9 +191,13 @@ public class SnakeView extends GridView implements NetworkListener {
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_UP:
                 if (currentMode == READY || currentMode == LOST) {
+                    System.out.println("1. board size " + numRows + " x " + numColumns);
                     initializeGame();
+                    System.out.println("2. board size " + numRows + " x " + numColumns);
                     setMode(RUNNING);
+                    System.out.println("3. board size " + numRows + " x " + numColumns);
                     update();
+                    System.out.println("4. board size " + numRows + " x " + numColumns);
                     return true;
                 }
 
@@ -215,6 +228,7 @@ public class SnakeView extends GridView implements NetworkListener {
     }
 
     public void setMode(int newMode) {
+        System.out.println("10. board size " + numRows + " x " + numColumns);
         int oldMode = currentMode;
         currentMode = newMode;
 
@@ -225,7 +239,6 @@ public class SnakeView extends GridView implements NetworkListener {
             pauseButton.setVisibility(View.INVISIBLE);
             networked = new NetworksObject(2);
             networked.setListener(this);
-            networked.sendInitialGame(numRows, numColumns, snakePos);
             return;
         }
 
@@ -260,12 +273,15 @@ public class SnakeView extends GridView implements NetworkListener {
     }
 
     public void update() {
+        System.out.println("11. board size " + numRows + " x " + numColumns);
         if (currentMode == RUNNING) {
+            System.out.println("12. board size " + numRows + " x " + numColumns);
             long now = System.currentTimeMillis();
 
             if (now - lastMove > moveDelay) {
                 clearTiles();
-                updateSnakes();
+                updateSnake();
+                updateOtherSnake();
                 updateWalls();
                 setTile(APPLE, applePos.x, applePos.y);
                 if (networked != null) {
@@ -277,7 +293,7 @@ public class SnakeView extends GridView implements NetworkListener {
         }
     }
 
-    private void updateSnakes() {
+    private void updateSnake() {
         boolean growSnake = false;
 
         // move snake -- remove from tail and add to head if not growing
@@ -307,7 +323,7 @@ public class SnakeView extends GridView implements NetworkListener {
             return;
         }
 
-        if (networked != null) {
+        if (otherSnakePos != null) {
             if (otherSnakePos.contains(newHead)) {
                 setMode(LOST);
                 System.out.println("collision with other snake");
@@ -357,6 +373,41 @@ public class SnakeView extends GridView implements NetworkListener {
         }
     }
 
+    private void updateOtherSnake() {
+        if (otherSnakePos == null) {
+            return;
+        }
+        // update drawing of other snake
+        for (int i = 0; i < otherSnakePos.size(); i++) {
+            Point p = otherSnakePos.get(i);
+            if (i == 0) {
+                setTile(OTHER_SNAKE_HEAD, p.x, p.y);
+            } else {
+                setTile(SNAKE_BODY, p.x, p.y);
+            }
+        }
+    }
+
+    public void connectionEstablished() {
+        System.out.println("connection establisehd");
+        connectionEstablished = true;
+        if (screenCreated) {
+            screenCreated();
+        }
+    }
+
+    @Override
+    public void screenCreated() {
+        screenCreated = true;
+        if (connectionEstablished && currentMode == REQUESTING) {
+            initializeGame();
+            System.out.println("prepared to write rows cols " + numRows + ", " + numColumns);
+            networked.sendInitialGame(numRows, numColumns, snakePos);
+            setMode(RUNNING);
+            update();
+        }
+    }
+
     public void moveReceived(ArrayList<Point> s, Point apple, int otherscore, String state) {
         if (otherSnakePos != null || otherSnakePos.size() > 0) {
             // remove current other snake
@@ -369,14 +420,6 @@ public class SnakeView extends GridView implements NetworkListener {
                 }
             }
         }
-        if (state.equals("connected")) {
-            if (currentMode == REQUESTING) {
-                setMode(RUNNING);
-            }
-            otherSnakePos = s;
-            otherScore = otherscore;
-            applePos = apple;
-        }
 
         // if other snake collided with itself, the wall, or our snake
         // this detection should be done on the other client
@@ -385,14 +428,13 @@ public class SnakeView extends GridView implements NetworkListener {
             return;
         }
 
-        // update drawing of other snake
-        for (int i = 0; i < otherSnakePos.size(); i++) {
-            Point p = otherSnakePos.get(i);
-            if (i == 0) {
-                setTile(OTHER_SNAKE_HEAD, p.x, p.y);
-            } else {
-                setTile(SNAKE_BODY, p.x, p.y);
-            }
-        }
+        //if (state.equals("connected")) {
+
+        otherSnakePos = s;
+        otherScore = otherscore;
+        applePos = apple;
+        //}
+
+        updateOtherSnake();
     }
 }
