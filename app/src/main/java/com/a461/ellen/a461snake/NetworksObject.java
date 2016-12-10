@@ -210,26 +210,34 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
 
         // populate positions
         int posStart = message.indexOf(':');
+        int appleStart = message.indexOf(':', posStart + 1);
         int posEnd = message.indexOf('\n');
         int pointStart = message.indexOf('[', posStart);
-        while (pointStart != -1) {
-            int x = message.charAt(pointStart + 1);
-            int y = message.charAt(pointStart + 3);
-            Point p = new Point(Character.getNumericValue(x), Character.getNumericValue(y));
+        int pointEnd = message.indexOf(']', pointStart);
+        int pointDelimit = message.indexOf(',', pointStart);
+        while (pointStart < appleStart) {
+            String x = message.substring(pointStart + 1, pointDelimit);
+            String y = message.substring(pointDelimit + 1, pointEnd);
+            Point p = new Point(Integer.parseInt(x), Integer.parseInt(y));
             otherSnake.add(p);
             pointStart = message.indexOf('[', pointStart + 1);
+            pointEnd = message.indexOf(']', pointStart);
+            pointDelimit = message.indexOf(',', pointStart);
         }
 
         // find apple pos
-        int appleStart = message.indexOf(':', posStart + 1);
-        int x = message.charAt(appleStart + 2);
-        int y = message.charAt(appleStart + 4);
-        applePos = new Point(Character.getNumericValue(x), Character.getNumericValue(y));
+        int appleDelimit = message.indexOf(',', appleStart);
+        int appleEnd = message.indexOf(']', appleDelimit);
+        System.out.println("apple start " + appleStart + " delimit " + appleDelimit + " end " + appleEnd);
+        String x = message.substring(appleStart + 2, appleDelimit);
+        String y = message.substring(appleDelimit + 1, appleEnd);
+        applePos = new Point(Integer.parseInt(x), Integer.parseInt(y));
 
         // find score
         int scoreStart = message.indexOf(':', appleStart + 1);
-        int s = message.charAt(scoreStart + 1);
-        otherScore = Character.getNumericValue(s);
+        int scoreEnd = message.indexOf('\n', scoreStart);
+        String s = message.substring(scoreStart + 1, scoreEnd);
+        otherScore = Integer.parseInt(s);
 
         // find status message
         int statusStart = message.indexOf(':', appleStart + 1);

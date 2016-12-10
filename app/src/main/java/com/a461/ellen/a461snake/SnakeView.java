@@ -467,6 +467,9 @@ public class SnakeView extends GridView implements NetworkListener {
     public void connectionEstablished() {
         System.out.println("connection establisehd");
         connectionEstablished = true;
+        if (screenCreated) {
+            screenCreated();
+        }
     }
 
     @Override
@@ -476,20 +479,10 @@ public class SnakeView extends GridView implements NetworkListener {
             initializeGame();
             System.out.println("prepared to write rows cols " + numRows + ", " + numColumns);
             networked.sendInitialGame(numRows, numColumns, snakePos);
-            setMode(RUNNING);
-            update();
         }
     }
 
     public void moveReceived(ArrayList<Point> s, ArrayList<Point> os, Point apple, int otherscore, String state) {
-        if (state.equals("initialgame")) {
-            snakePos = s;
-            updateSnake();
-            if (screenCreated) {
-                screenCreated();
-            }
-        }
-
         if (otherSnakePos != null && otherSnakePos.size() > 0) {
             // remove current other snake
             for (int i = 0; i < otherSnakePos.size(); i++) {
@@ -516,6 +509,13 @@ public class SnakeView extends GridView implements NetworkListener {
         applePos = apple;
         //}
 
-        updateOtherSnake();
+        if (state.equals("initialgame")) {
+            System.out.println("initial game received");
+            snakePos = s;
+            setMode(RUNNING);
+            update();
+        } else {
+            updateOtherSnake();
+        }
     }
 }
