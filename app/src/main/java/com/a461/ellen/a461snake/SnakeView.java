@@ -7,6 +7,7 @@ import android.os.Message;
 import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -26,6 +27,7 @@ public class SnakeView extends GridView implements NetworkListener {
     public static final int LOST = 3;
     public static final int REQUESTING = 4;
     public static final int WON = 5;
+    // public static final int WAITING = 6;
 
     // directions
     private int currentDirection = UP;
@@ -52,10 +54,15 @@ public class SnakeView extends GridView implements NetworkListener {
 
     private int score = 0;
     private int otherScore = 0;
+
     private NetworksObject networked;
-    private long lastMove;
     boolean connectionEstablished = false;
     boolean screenCreated = false;
+
+    // for detecting swipes
+    private float x1, x2;
+    private float y1, y2;
+    static final int MIN_DISTANCE = 150;
 
     // position of snake & apple
     private ArrayList<Point> snakePos = new ArrayList<Point>();
@@ -69,6 +76,8 @@ public class SnakeView extends GridView implements NetworkListener {
 
     // handler for animation
     private RefreshHandler redrawHandler = new RefreshHandler();
+    private Handler mainHandler;
+    private long lastMove;
 
     class RefreshHandler extends Handler {
 
@@ -94,6 +103,7 @@ public class SnakeView extends GridView implements NetworkListener {
 
     public SnakeView(Context context, AttributeSet attributes, int style) {
         super(context, attributes, style);
+        mainHandler = new Handler(context.getMainLooper());
         initializeView();
     }
 
@@ -132,6 +142,7 @@ public class SnakeView extends GridView implements NetworkListener {
 
             scoreBoard.setText("YOU: " + score);
             oscoreBoard.setText("THEM: " + otherScore);
+            oscoreBoard.setVisibility(View.VISIBLE);
             pauseButton.setVisibility(View.INVISIBLE);
         } else {
             scoreBoard.setText("SCORE: " + score);
@@ -190,26 +201,7 @@ public class SnakeView extends GridView implements NetworkListener {
     public boolean onKeyDown(int keyCode, KeyEvent m) {
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_UP:
-                if (currentMode == READY || currentMode == LOST) {
-                    System.out.println("1. board size " + numRows + " x " + numColumns);
-                    initializeGame();
-                    System.out.println("2. board size " + numRows + " x " + numColumns);
-                    setMode(RUNNING);
-                    System.out.println("3. board size " + numRows + " x " + numColumns);
-                    update();
-                    System.out.println("4. board size " + numRows + " x " + numColumns);
-                    return true;
-                }
-
-                if (currentMode == PAUSE) {
-                    setMode(RUNNING);
-                    update();
-                    return true;
-                }
-
-                nextDirection = (currentDirection == DOWN) ? currentDirection : UP;
-                System.out.println("pressed up");
-                return true;
+                return directionUp();
             case KeyEvent.KEYCODE_DPAD_DOWN:
                 nextDirection = (currentDirection == UP) ? currentDirection : DOWN;
                 System.out.println("pressed down");
@@ -225,6 +217,78 @@ public class SnakeView extends GridView implements NetworkListener {
             default:
                 return super.onKeyDown(keyCode, m);
         }
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        System.out.println("TOUCH EVENT DETECTED");
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                System.out.println("action down");
+                x1 = event.getX();
+                y1 = event.getY();
+                System.out.println("x1: " + x1 + "\ty1: " + y1);
+                return true;
+            case MotionEvent.ACTION_UP:
+                System.out.println("action up");
+                x2 = event.getX();
+                y2 = event.getY();
+                System.out.println("x2: " + x2 + "\ty2: " + y2);
+                float deltaX = x2 - x1;
+                float deltaY = y2 - y1;
+
+                // left-right swipes
+                if (Math.abs(deltaX) > MIN_DISTANCE) {
+                    System.out.println("deltax");
+                    if (x2 > x1) {
+                        // left -> right
+                        nextDirection = (currentDirection == LEFT) ? currentDirection : RIGHT;
+                        System.out.println("pressed right");
+                        return true;
+                    } else {
+                        // right -> left
+                        nextDirection = (currentDirection == RIGHT) ? currentDirection : LEFT;
+                        System.out.println("pressed left");
+                        return true;
+                    }
+                } else if (Math.abs(deltaY) > MIN_DISTANCE) {
+                    System.out.println("deltay");
+                    if (y2 > y1) {
+                        // down -> up
+                        nextDirection = (currentDirection == UP) ? currentDirection : DOWN;
+                        System.out.println("pressed down");
+                        return true;
+                    } else {
+                        // up -> down
+                        return directionUp();
+                    }
+                }
+                break;
+        }
+        return super.onTouchEvent(event);
+    }
+
+    private boolean directionUp() {
+        if (currentMode == READY || currentMode == LOST) {
+            System.out.println("1. board size " + numRows + " x " + numColumns);
+            initializeGame();
+            System.out.println("2. board size " + numRows + " x " + numColumns);
+            setMode(RUNNING);
+            System.out.println("3. board size " + numRows + " x " + numColumns);
+            update();
+            System.out.println("4. board size " + numRows + " x " + numColumns);
+            return true;
+        }
+
+        if (currentMode == PAUSE) {
+            setMode(RUNNING);
+            update();
+            return true;
+        }
+
+        nextDirection = (currentDirection == DOWN) ? currentDirection : UP;
+        System.out.println("pressed up");
+        return true;
     }
 
     public void setMode(int newMode) {
@@ -251,25 +315,30 @@ public class SnakeView extends GridView implements NetworkListener {
             return;
         }
 
-        CharSequence s = "";
-        switch(currentMode) {
-            case PAUSE:
-                s = "PAUSED\nPress play or swipe up to resume";
-                break;
-            case READY:
-                s = "Swipe up to begin";
-                break;
-            case WON:
-                s = "YOU WON!\nScore: " + score;
-                playAgain.setVisibility(View.VISIBLE);
-                break;
-            case LOST:
-                s = "GAME OVER\nScore: " + score;
-                playAgain.setVisibility(View.VISIBLE);
-                break;
-        }
-        statusText.setText(s);
-        statusText.setVisibility(View.VISIBLE);
+        mainHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                CharSequence s = "";
+                switch(currentMode) {
+                    case PAUSE:
+                        s = "PAUSED\nPress play or swipe up to resume";
+                        break;
+                    case READY:
+                        s = "Swipe up to begin";
+                        break;
+                    case WON:
+                        s = "YOU WON!\nScore: " + score;
+                        playAgain.setVisibility(View.VISIBLE);
+                        break;
+                    case LOST:
+                        s = "GAME OVER\nScore: " + score;
+                        playAgain.setVisibility(View.VISIBLE);
+                        break;
+                }
+                statusText.setText(s);
+                statusText.setVisibility(View.VISIBLE);
+            }
+        });
     }
 
     public void update() {
@@ -315,6 +384,7 @@ public class SnakeView extends GridView implements NetworkListener {
                 newHead = new Point(head.x, head.y + 1);
                 break;
         }
+        System.out.println("new head " + newHead.toString());
 
         // check for collision with itself
         if (snakePos.contains(newHead)) {
@@ -329,6 +399,11 @@ public class SnakeView extends GridView implements NetworkListener {
                 System.out.println("collision with other snake");
                 return;
             }
+        }
+
+        System.out.println("new points:\n");
+        for (Point p: snakePos) {
+            System.out.println(p.toString());
         }
 
         // check for collision with walls
@@ -377,6 +452,7 @@ public class SnakeView extends GridView implements NetworkListener {
         if (otherSnakePos == null) {
             return;
         }
+        System.out.println("updating other snake");
         // update drawing of other snake
         for (int i = 0; i < otherSnakePos.size(); i++) {
             Point p = otherSnakePos.get(i);
@@ -391,15 +467,12 @@ public class SnakeView extends GridView implements NetworkListener {
     public void connectionEstablished() {
         System.out.println("connection establisehd");
         connectionEstablished = true;
-        if (screenCreated) {
-            screenCreated();
-        }
     }
 
     @Override
     public void screenCreated() {
         screenCreated = true;
-        if (connectionEstablished && currentMode == REQUESTING) {
+        if (connectionEstablished && currentMode == REQUESTING && otherSnakePos != null) {
             initializeGame();
             System.out.println("prepared to write rows cols " + numRows + ", " + numColumns);
             networked.sendInitialGame(numRows, numColumns, snakePos);
@@ -408,8 +481,16 @@ public class SnakeView extends GridView implements NetworkListener {
         }
     }
 
-    public void moveReceived(ArrayList<Point> s, Point apple, int otherscore, String state) {
-        if (otherSnakePos != null || otherSnakePos.size() > 0) {
+    public void moveReceived(ArrayList<Point> s, ArrayList<Point> os, Point apple, int otherscore, String state) {
+        if (state.equals("initialgame")) {
+            snakePos = s;
+            updateSnake();
+            if (screenCreated) {
+                screenCreated();
+            }
+        }
+
+        if (otherSnakePos != null && otherSnakePos.size() > 0) {
             // remove current other snake
             for (int i = 0; i < otherSnakePos.size(); i++) {
                 Point p = otherSnakePos.get(i);
@@ -430,7 +511,7 @@ public class SnakeView extends GridView implements NetworkListener {
 
         //if (state.equals("connected")) {
 
-        otherSnakePos = s;
+        otherSnakePos = os;
         otherScore = otherscore;
         applePos = apple;
         //}

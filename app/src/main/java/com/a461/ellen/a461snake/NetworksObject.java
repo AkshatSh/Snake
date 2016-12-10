@@ -58,7 +58,8 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
     private WriteThread wt = null;
     private ConnectionThread ct = null;
     //private String url = "Sample-env.3wcenitkcy.us-east-1.elasticbeanstalk.com";
-    private String url = "108.179.153.156";
+    //private String url = "108.179.153.156";
+    private String url = "54.89.208.149";
 
     public NetworksObject(int n) {
         numPlayers = n;
@@ -68,6 +69,18 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
 //        } catch (Exception e) {
 //            e.printStackTrace();
 //        }
+    }
+
+    public void closeConnection() {
+        try {
+            client.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        rt = null;
+        wt = null;
+        ct = null;
     }
 
     // open connection with server
@@ -82,16 +95,79 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
     // for setting up initial game--request server send positions of both
     // snakes and apple given the size of the board
     public void sendInitialGame(int rows, int cols, ArrayList<Point> snakePos) {
-        String data = "p:";
-        for (Point p: snakePos) {
-            data += "[" + p.x + "," + p.y + "] ";
-        }
+        String data = "requestgame";
         data += "\nr:" + rows + "\n" + "c:" + cols + "\r\n";
         System.out.println("message: \n" + data);
 
         // write to server on separate thread
         wt.data = data;
         wt.start();
+    }
+
+    private void decipherInitialPacket(String data) {
+        System.out.println("\n\ndata:" + data + "\n\n");
+        int posStart = data.indexOf("p:");
+        System.out.println("posStart " + posStart);
+        int secStart = data.indexOf("q:", posStart + 1);
+        System.out.println("secStart " + secStart);
+        int charBegin = posStart + 2;
+        int charEnd = data.indexOf(' ', charBegin + 1);
+        ArrayList<Point> snake = new ArrayList<Point>();
+        ArrayList<Point> otherSnake = new ArrayList<Point>();
+        int otherScore = 0;
+        Point applePos = null;
+        String state = "initialgame";
+        while (charBegin != -1 && charEnd != -1 && charBegin < secStart && charEnd < secStart) {
+            System.out.println("charBegin: " + charBegin + " charEnd: " + charEnd);
+            String sx = data.substring(charBegin, charEnd);
+            System.out.println("sx " + sx);
+            charBegin = charEnd + 1;
+            charEnd = data.indexOf(' ', charBegin + 1);
+            if (charEnd >= secStart) {
+                charEnd = secStart - 1;
+            }
+            String sy = data.substring(charBegin, charEnd);
+            System.out.println("sy " + sy);
+            Point p = new Point(Integer.parseInt(sx), Integer.parseInt(sy));
+            snake.add(p);
+            charBegin = charEnd + 1;
+            charEnd = data.indexOf(' ', charBegin + 1);
+        }
+
+        for (Point p: snake) {
+            System.out.println("point: " + p.toString());
+        }
+
+        //int appleStart = data.indexOf('\n', secStart + 1);
+        charBegin = secStart + 2;
+        charEnd = data.indexOf(' ', charBegin + 1);
+        while (charBegin != -1 && charEnd != -1) {
+            String sx = data.substring(charBegin, charEnd);
+            System.out.println("sx " + sx);
+            charBegin = charEnd + 1;
+            charEnd = data.indexOf(' ', charBegin + 1);
+            System.out.println("charBegin: " + charBegin + " charEnd: " + charEnd);
+            if (charEnd == -1) {
+                charEnd = data.length();
+            }
+            String sy = data.substring(charBegin, charEnd);
+            System.out.println("sy " + sy);
+            Point p = new Point(Integer.parseInt(sx), Integer.parseInt(sy));
+            otherSnake.add(p);
+            charBegin = charEnd + 1;
+            charEnd = data.indexOf(' ', charBegin + 1);
+        }
+
+//        space = data.indexOf(' ', appleStart);
+//        String ax = data.substring(space - 1, space);
+//        String ay = data.substring(space + 1, space + 2);
+//        applePos = new Point(Integer.parseInt(ax), Integer.parseInt(ay));
+        applePos = new Point(15, 15);
+
+        for (Point p: otherSnake) {
+            System.out.println("other point: " + p.toString());
+        }
+        listener.moveReceived(snake, otherSnake, applePos, otherScore, state);
     }
 
     // delimit points by a space
@@ -114,9 +190,20 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
         return data;
     }
 
+    public int getNumPlayers() {
+        return numPlayers;
+    }
+
     private void decipherData(String message) {
+        System.out.println("MESSAGE: \n" + message);
+        if (message.contains("start")) {
+            System.out.println("RECEIVED INITIAL PACKET");
+            decipherInitialPacket(message);
+            return;
+        }
+
         // split string into fields
-        ArrayList<Point> otherSnake = null;
+        ArrayList<Point> otherSnake = new ArrayList<Point>();;
         int otherScore = 0;
         Point applePos = null;
         String state = null;
@@ -149,7 +236,7 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
         int statusEnd = message.indexOf("\r\n");
         state = message.substring(statusStart + 1, statusEnd);
 
-        listener.moveReceived(otherSnake, applePos, otherScore, state);
+        listener.moveReceived(null, otherSnake, applePos, otherScore, state);
     }
 }
 
@@ -263,6 +350,8 @@ class ReadThread extends Thread {
         }
         System.out.println("reading");
         int numRead = 0;
+        int totalRead = 0;
+        String result = "";
         ByteBuffer bb = ByteBuffer.allocate(2048);
         try {
             while (true) {
@@ -270,14 +359,22 @@ class ReadThread extends Thread {
                     if (numRead == 0) {
                         continue;
                     }
+                    totalRead += numRead;
                     bb.flip();
                     Charset cs = Charset.forName("utf-8");
                     CharsetDecoder decoder = cs.newDecoder();
                     CharBuffer charBuffer = decoder.decode(bb);
-                    String result = charBuffer.toString();
+                    result += charBuffer.toString();
                     bb.clear();
-                    System.out.println("read " + result);
-                    c.callback(result);
+                    System.out.println("read " + numRead + " " + result);
+
+                    if (totalRead > 2) {
+                        System.out.println("total read " + totalRead + "|" + result + "|");
+                        c.callback(result);
+                        totalRead = 0;
+                        result = "";
+                    }
+                    //c.callback(result);
                 }
             }
         } catch (Exception e) {
