@@ -329,12 +329,12 @@ public class SnakeView extends GridView implements NetworkListener {
                 break;
             case WON:
                 System.out.println("won");
-                s = "YOU WON!\nYour Score: " + score + "\nTheir Score: " + otherScore;
+                s = "YOU WON!\nYour Score: " + score;
                 playAgain.setVisibility(View.VISIBLE);
                 break;
             case LOST:
                 System.out.println("lost");
-                s = "GAME OVER\n Your Score: " + score + "\nTheir Score: " + otherScore;
+                s = "GAME OVER\n Your Score: " + score;
                 playAgain.setVisibility(View.VISIBLE);
                 break;
         }
