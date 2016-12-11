@@ -50,7 +50,7 @@ public class SnakeView extends GridView implements NetworkListener {
     private Button playAgain;
     private CustomTextView scoreBoard;
     private CustomTextView oscoreBoard;
-    private String scoreText;
+    private String scoreText = "YOU";
     private Button pauseButton;
 
     private int score = 0;
@@ -329,7 +329,7 @@ public class SnakeView extends GridView implements NetworkListener {
                 break;
             case WON:
                 System.out.println("won");
-                s = "YOU WON!\nScore: " + score + "\nTheir Score: " + otherScore;
+                s = "YOU WON!\nYour Score: " + score + "\nTheir Score: " + otherScore;
                 playAgain.setVisibility(View.VISIBLE);
                 break;
             case LOST:
@@ -423,7 +423,12 @@ public class SnakeView extends GridView implements NetworkListener {
         if (newHead.equals(applePos)) {
             genNewApple();
             score++;
-            scoreBoard.setText(scoreText + score);
+            if (networked != null) {
+                scoreBoard.setText("YOU: " + score);
+            } else {
+                scoreBoard.setText("SCORE: " + score);
+            }
+
             growSnake = true;
         }
 
@@ -488,7 +493,7 @@ public class SnakeView extends GridView implements NetworkListener {
         }
     }
 
-    public void moveReceived(ArrayList<Point> s, ArrayList<Point> os, Point apple, int otherscore, String state) {
+    public void moveReceived(ArrayList<Point> s, ArrayList<Point> os, Point apple, int oscore, String state) {
         if (otherSnakePos != null && otherSnakePos.size() > 0) {
             // remove current other snake
             for (int i = 0; i < otherSnakePos.size(); i++) {
@@ -507,7 +512,11 @@ public class SnakeView extends GridView implements NetworkListener {
         //if (state.equals("connected")) {
 
         otherSnakePos = os;
-        otherScore = otherscore;
+        if (otherScore != oscore) {
+            otherScore = oscore;
+            oscoreBoard.setText("THEM: " + otherScore);
+        }
+
         applePos = apple;
         //}
 
