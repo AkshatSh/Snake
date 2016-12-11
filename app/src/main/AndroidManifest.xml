@@ -25,6 +25,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <service
+            android:name=".WriteService"
+            android:exported="false"/>
         <activity
             android:name=".Game"
             android:label="@string/app_name">

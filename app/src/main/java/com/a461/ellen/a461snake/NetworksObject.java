@@ -1,5 +1,7 @@
 package com.a461.ellen.a461snake;
 
+import android.app.IntentService;
+import android.content.Intent;
 import android.graphics.Point;
 import android.os.AsyncTask;
 
@@ -10,6 +12,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -21,6 +24,8 @@ import java.nio.charset.CharsetDecoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
+import android.os.Handler;
+import android.os.Looper;
 
 public class NetworksObject implements NetworkObservable, ThreadCallback {
 
@@ -45,24 +50,29 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
         wt.client = client;
         rt.channel = client;
         rt.start();
+        wt.start();
         if (client == null) {
             System.out.println("client is null");
         }
         listener.connectionEstablished();
     }
 
+    private Handler mainHandler;
     private int numPlayers;
     private Selector selector;
     private SocketChannel client = null;
     private ReadThread rt = null;
     private WriteThread wt = null;
+    private WriteTask writetask = null;
+    private WriteService ws = null;
     private ConnectionThread ct = null;
     //private String url = "Sample-env.3wcenitkcy.us-east-1.elasticbeanstalk.com";
     //private String url = "108.179.153.156";
     private String url = "54.89.208.149";
 
-    public NetworksObject(int n) {
+    public NetworksObject(int n, Handler mh) {
         numPlayers = n;
+        mainHandler = mh;
         openConnection();
 //        try {
 //            new Thread(new NetworkThread(client)).start();
@@ -89,6 +99,8 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
         ct = new ConnectionThread(client, url, this);
         ct.start();
         wt = new WriteThread("", client);
+        writetask = new WriteTask(client);
+        ws = new WriteService(client);
         rt = new ReadThread("read thread", client, this);
     }
 
@@ -97,19 +109,20 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
     public void sendInitialGame(int rows, int cols, ArrayList<Point> snakePos) {
         String data = "requestgame";
         data += "\nr:" + rows + "\n" + "c:" + cols + "\r\n";
-        System.out.println("message: \n" + data);
+        //System.out.println("message: \n" + data);
 
         // write to server on separate thread
         wt.data = data;
-        wt.start();
+        // wt.start();
+        //writetask.execute(data);
     }
 
     private void decipherInitialPacket(String data) {
-        System.out.println("\n\ndata:" + data + "\n\n");
+        //System.out.println("\n\ndata:" + data + "\n\n");
         int posStart = data.indexOf("p:");
-        System.out.println("posStart " + posStart);
+        //System.out.println("posStart " + posStart);
         int secStart = data.indexOf("q:", posStart + 1);
-        System.out.println("secStart " + secStart);
+        //System.out.println("secStart " + secStart);
         int charBegin = posStart + 2;
         int charEnd = data.indexOf(' ', charBegin + 1);
         ArrayList<Point> snake = new ArrayList<Point>();
@@ -118,16 +131,16 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
         Point applePos = null;
         String state = "initialgame";
         while (charBegin != -1 && charEnd != -1 && charBegin < secStart && charEnd < secStart) {
-            System.out.println("charBegin: " + charBegin + " charEnd: " + charEnd);
+            //System.out.println("charBegin: " + charBegin + " charEnd: " + charEnd);
             String sx = data.substring(charBegin, charEnd);
-            System.out.println("sx " + sx);
+            //System.out.println("sx " + sx);
             charBegin = charEnd + 1;
             charEnd = data.indexOf(' ', charBegin + 1);
             if (charEnd >= secStart) {
                 charEnd = secStart - 1;
             }
             String sy = data.substring(charBegin, charEnd);
-            System.out.println("sy " + sy);
+            //System.out.println("sy " + sy);
             Point p = new Point(Integer.parseInt(sx), Integer.parseInt(sy));
             snake.add(p);
             charBegin = charEnd + 1;
@@ -135,7 +148,7 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
         }
 
         for (Point p: snake) {
-            System.out.println("point: " + p.toString());
+            //System.out.println("point: " + p.toString());
         }
 
         //int appleStart = data.indexOf('\n', secStart + 1);
@@ -143,15 +156,15 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
         charEnd = data.indexOf(' ', charBegin + 1);
         while (charBegin != -1 && charEnd != -1) {
             String sx = data.substring(charBegin, charEnd);
-            System.out.println("sx " + sx);
+            //System.out.println("sx " + sx);
             charBegin = charEnd + 1;
             charEnd = data.indexOf(' ', charBegin + 1);
-            System.out.println("charBegin: " + charBegin + " charEnd: " + charEnd);
+            //System.out.println("charBegin: " + charBegin + " charEnd: " + charEnd);
             if (charEnd == -1) {
                 charEnd = data.length();
             }
             String sy = data.substring(charBegin, charEnd);
-            System.out.println("sy " + sy);
+            //System.out.println("sy " + sy);
             Point p = new Point(Integer.parseInt(sx), Integer.parseInt(sy));
             otherSnake.add(p);
             charBegin = charEnd + 1;
@@ -165,8 +178,9 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
         applePos = new Point(15, 15);
 
         for (Point p: otherSnake) {
-            System.out.println("other point: " + p.toString());
+            //System.out.println("other point: " + p.toString());
         }
+
         listener.moveReceived(snake, otherSnake, applePos, otherScore, state);
     }
 
@@ -175,18 +189,29 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
     public void sendMoves(ArrayList<Point> snakePos, Point applePos, int score, String state) {
         String data = packageData(snakePos, applePos, score, state);
         wt.data = data;
-        wt.start();
+        //wt.start();
+        //writetask.execute(data);
+
+        //Intent mServiceIntent = new Intent(this, WriteService.class);
+        //mServiceIntent.setData(data);
+    }
+
+    public void sendLostMessage() {
+        wt.data = "gameover";
     }
 
     private String packageData(ArrayList<Point> snakePos, Point applePos, int score, String state) {
-        System.out.println("packaging data");
+        //System.out.println("packaging data");
         String data = "p:";
         for (Point p: snakePos) {
             data += "[" + p.x + "," + p.y + "] ";
         }
         data += "\na:" + "[" + applePos.x + "," + applePos.y + "]";
         data += "\ns:" + score + "\nm:" + state + "\r\n";
-        System.out.println("data: \n" + data);
+        if (state.equals("lost")) {
+            System.out.println("data: \n" + data);
+        }
+        //System.out.println("data: \n" + data);
         return data;
     }
 
@@ -195,10 +220,16 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
     }
 
     private void decipherData(String message) {
-        System.out.println("MESSAGE: \n" + message);
+        //System.out.println("MESSAGE: \n" + message);
         if (message.contains("start")) {
             System.out.println("RECEIVED INITIAL PACKET");
             decipherInitialPacket(message);
+            return;
+        }
+
+        if (message.contains("gameover")) {
+            System.out.println("received game over message");
+            listener.endGame();
             return;
         }
 
@@ -228,7 +259,7 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
         // find apple pos
         int appleDelimit = message.indexOf(',', appleStart);
         int appleEnd = message.indexOf(']', appleDelimit);
-        System.out.println("apple start " + appleStart + " delimit " + appleDelimit + " end " + appleEnd);
+        //System.out.println("apple start " + appleStart + " delimit " + appleDelimit + " end " + appleEnd);
         String x = message.substring(appleStart + 2, appleDelimit);
         String y = message.substring(appleDelimit + 1, appleEnd);
         applePos = new Point(Integer.parseInt(x), Integer.parseInt(y));
@@ -308,6 +339,45 @@ class ConnectionThread extends Thread {
     }
 }
 
+class WriteTask extends AsyncTask<Void, Void, Boolean> {
+    public SocketChannel client;
+    public String data;
+
+    WriteTask(SocketChannel c) {
+        client = c;
+    }
+
+    public void setData(String d) {
+        data = d;
+    }
+
+    @Override
+    protected Boolean doInBackground(Void... params)  {
+        //String data = params[0];
+        while (true) {
+            try {
+                if (client == null) {
+                    System.out.println("client is null");
+                    return Boolean.FALSE;
+                }
+                if (data == null) {
+                    System.out.println("data is null");
+                    return Boolean.FALSE;
+                }
+                if (data.equals("")) {
+                    System.out.println("data is empty");
+                    return Boolean.FALSE;
+                }
+                ByteBuffer databb = ByteBuffer.wrap(data.getBytes());
+                int written = client.write(databb);
+                System.out.println("wrote " + written);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+
 class WriteThread extends Thread {
     public String data;
     public SocketChannel client;
@@ -318,24 +388,27 @@ class WriteThread extends Thread {
     }
 
     public void run() {
-        try {
-            if (client == null) {
-                System.out.println("client is null");
-                return;
+        while (true) {
+            try {
+                if (client == null) {
+                    System.out.println("client is null");
+                    return;
+                }
+                if (data == null) {
+                    //System.out.println("data is null");
+                    continue;
+                }
+                if (data.equals("")) {
+                    //System.out.println("data is empty");
+                    continue;
+                }
+                ByteBuffer databb = ByteBuffer.wrap(data.getBytes());
+                int written = client.write(databb);
+                System.out.println("wrote " + written);
+                data = null;
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            if (data == null) {
-                System.out.println("data is null");
-                return;
-            }
-            if (data.equals("")) {
-                System.out.println("data is empty");
-                return;
-            }
-            ByteBuffer databb = ByteBuffer.wrap(data.getBytes());
-            int written = client.write(databb);
-            System.out.println("wrote " + written);
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 }
@@ -372,16 +445,27 @@ class ReadThread extends Thread {
                     Charset cs = Charset.forName("utf-8");
                     CharsetDecoder decoder = cs.newDecoder();
                     CharBuffer charBuffer = decoder.decode(bb);
-                    result += charBuffer.toString();
+                    result = charBuffer.toString();
                     bb.clear();
                     System.out.println("read " + numRead + " " + result);
 
-                    if (totalRead > 2) {
-                        System.out.println("total read " + totalRead + "|" + result + "|");
-                        c.callback(result);
+                    if (numRead > 1) {
+                        //System.out.println("total read " + totalRead + "|" + result + "|");
+                        final String r = result;
+
+                        Handler mainHandler = new Handler(Looper.getMainLooper());
+                        mainHandler.post(new Runnable() {
+                                             @Override
+                                             public void run() {
+                                                 c.callback(r);
+                                             }
+                                         });
+
+                        // c.callback(result);
                         totalRead = 0;
-                        result = "";
+                        //result = "";
                     }
+                    result = "";
                     //c.callback(result);
                 }
             }

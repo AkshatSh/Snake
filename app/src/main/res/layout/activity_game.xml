@@ -48,7 +48,7 @@ android:layout_height="match_parent">
     <com.a461.ellen.a461snake.CustomTextView
         style="@style/textview"
         android:id="@+id/score"
-        android:text="SCORE: 0"
+        android:text="YOU: 0"
         android:visibility="visible"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

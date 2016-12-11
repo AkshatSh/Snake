@@ -50,6 +50,7 @@ public class SnakeView extends GridView implements NetworkListener {
     private Button playAgain;
     private CustomTextView scoreBoard;
     private CustomTextView oscoreBoard;
+    private String scoreText;
     private Button pauseButton;
 
     private int score = 0;
@@ -108,19 +109,19 @@ public class SnakeView extends GridView implements NetworkListener {
     }
 
     private void initializeView() {
-        System.out.println("9. board size " + numRows + " x " + numColumns);
+        //System.out.println("9. board size " + numRows + " x " + numColumns);
         setFocusable(true);
 
         resetTiles(6);
         loadTile(APPLE, ContextCompat.getDrawable(this.getContext(), R.drawable.apple));
         loadTile(SNAKE_HEAD, ContextCompat.getDrawable(this.getContext(), R.drawable.snakehead));
-        loadTile(OTHER_SNAKE_HEAD, ContextCompat.getDrawable(this.getContext(), R.drawable.snakehead));
+        loadTile(OTHER_SNAKE_HEAD, ContextCompat.getDrawable(this.getContext(), R.drawable.othersnakehead));
         loadTile(SNAKE_BODY, ContextCompat.getDrawable(this.getContext(), R.drawable.snakebody));
         loadTile(LEAF, ContextCompat.getDrawable(this.getContext(), R.drawable.leaf));
     }
 
     private void initializeGame() {
-        System.out.println("8. board size " + numRows + " x " + numColumns);
+        //System.out.println("8. board size " + numRows + " x " + numColumns);
         snakePos.clear();
         applePos = null;
         int startY = numRows - 2;
@@ -136,23 +137,24 @@ public class SnakeView extends GridView implements NetworkListener {
         genNewApple();
         score = 0;
         if (networked != null) {
+            scoreText = "YOU: ";
             if (otherSnakePos != null) {
                 otherSnakePos.clear();
             }
 
-            scoreBoard.setText("YOU: " + score);
             oscoreBoard.setText("THEM: " + otherScore);
             oscoreBoard.setVisibility(View.VISIBLE);
             pauseButton.setVisibility(View.INVISIBLE);
         } else {
-            scoreBoard.setText("SCORE: " + score);
+            scoreText = "SCORE: ";
             oscoreBoard.setVisibility(View.INVISIBLE);
             pauseButton.setVisibility(View.VISIBLE);
         }
+        scoreBoard.setText(scoreText + score);
     }
 
     private void genNewApple() {
-        System.out.println("6. board size " + numRows + " x " + numColumns);
+        //System.out.println("6. board size " + numRows + " x " + numColumns);
         Point appleLoc = null;
         boolean added = false;
         while (!added) {
@@ -270,13 +272,13 @@ public class SnakeView extends GridView implements NetworkListener {
 
     private boolean directionUp() {
         if (currentMode == READY || currentMode == LOST) {
-            System.out.println("1. board size " + numRows + " x " + numColumns);
+            //System.out.println("1. board size " + numRows + " x " + numColumns);
             initializeGame();
-            System.out.println("2. board size " + numRows + " x " + numColumns);
+            //System.out.println("2. board size " + numRows + " x " + numColumns);
             setMode(RUNNING);
-            System.out.println("3. board size " + numRows + " x " + numColumns);
+            //System.out.println("3. board size " + numRows + " x " + numColumns);
             update();
-            System.out.println("4. board size " + numRows + " x " + numColumns);
+            //System.out.println("4. board size " + numRows + " x " + numColumns);
             return true;
         }
 
@@ -292,7 +294,7 @@ public class SnakeView extends GridView implements NetworkListener {
     }
 
     public void setMode(int newMode) {
-        System.out.println("10. board size " + numRows + " x " + numColumns);
+        //System.out.println("10. board size " + numRows + " x " + numColumns);
         int oldMode = currentMode;
         currentMode = newMode;
 
@@ -301,7 +303,7 @@ public class SnakeView extends GridView implements NetworkListener {
             // initializeGame();
             statusText.setText("Searching for players...");
             pauseButton.setVisibility(View.INVISIBLE);
-            networked = new NetworksObject(2);
+            networked = new NetworksObject(2, mainHandler);
             networked.setListener(this);
             return;
         }
@@ -311,40 +313,39 @@ public class SnakeView extends GridView implements NetworkListener {
             statusText.setVisibility(View.INVISIBLE);
             playAgain.setVisibility(View.INVISIBLE);
             scoreBoard.setVisibility(View.VISIBLE);
+            if (networked != null) {
+                oscoreBoard.setVisibility(View.VISIBLE);
+            }
             update();
             return;
         }
-
-        mainHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                CharSequence s = "";
-                switch(currentMode) {
-                    case PAUSE:
-                        s = "PAUSED\nPress play or swipe up to resume";
-                        break;
-                    case READY:
-                        s = "Swipe up to begin";
-                        break;
-                    case WON:
-                        s = "YOU WON!\nScore: " + score;
-                        playAgain.setVisibility(View.VISIBLE);
-                        break;
-                    case LOST:
-                        s = "GAME OVER\nScore: " + score;
-                        playAgain.setVisibility(View.VISIBLE);
-                        break;
-                }
-                statusText.setText(s);
-                statusText.setVisibility(View.VISIBLE);
-            }
-        });
+        CharSequence s = "";
+        switch(currentMode) {
+            case PAUSE:
+                s = "PAUSED\nPress play or swipe up to resume";
+                break;
+            case READY:
+                s = "Swipe up to begin";
+                break;
+            case WON:
+                System.out.println("won");
+                s = "YOU WON!\nScore: " + score + "\nTheir Score: " + otherScore;
+                playAgain.setVisibility(View.VISIBLE);
+                break;
+            case LOST:
+                System.out.println("lost");
+                s = "GAME OVER\n Your Score: " + score + "\nTheir Score: " + otherScore;
+                playAgain.setVisibility(View.VISIBLE);
+                break;
+        }
+        statusText.setText(s);
+        statusText.setVisibility(View.VISIBLE);
     }
 
     public void update() {
-        System.out.println("11. board size " + numRows + " x " + numColumns);
+        //System.out.println("11. board size " + numRows + " x " + numColumns);
         if (currentMode == RUNNING) {
-            System.out.println("12. board size " + numRows + " x " + numColumns);
+            //System.out.println("12. board size " + numRows + " x " + numColumns);
             long now = System.currentTimeMillis();
 
             if (now - lastMove > moveDelay) {
@@ -354,7 +355,12 @@ public class SnakeView extends GridView implements NetworkListener {
                 updateWalls();
                 setTile(APPLE, applePos.x, applePos.y);
                 if (networked != null) {
-                    networked.sendMoves(snakePos, applePos, score, (currentMode == LOST ? "lost" : ""));
+                    System.out.println("current mode: " + currentMode);
+                    if (currentMode == LOST) {
+                        networked.sendLostMessage();
+                        return;
+                    }
+                    networked.sendMoves(snakePos, applePos, score, "");
                 }
                 lastMove = now;
             }
@@ -417,7 +423,7 @@ public class SnakeView extends GridView implements NetworkListener {
         if (newHead.equals(applePos)) {
             genNewApple();
             score++;
-            scoreBoard.setText("SCORE: " + score);
+            scoreBoard.setText(scoreText + score);
             growSnake = true;
         }
 
@@ -436,7 +442,7 @@ public class SnakeView extends GridView implements NetworkListener {
             }
         }
     }
-    
+
     private void updateWalls() {
         for (int i = 0; i < numColumns; i++) {
             setTile(LEAF, i, 0);
@@ -497,10 +503,6 @@ public class SnakeView extends GridView implements NetworkListener {
 
         // if other snake collided with itself, the wall, or our snake
         // this detection should be done on the other client
-        if (state.equals("lost")) {
-            setMode(WON);
-            return;
-        }
 
         //if (state.equals("connected")) {
 
@@ -517,5 +519,10 @@ public class SnakeView extends GridView implements NetworkListener {
         } else {
             updateOtherSnake();
         }
+    }
+
+    public void endGame() {
+        System.out.println("won state");
+        setMode(WON);
     }
 }

@@ -69,6 +69,9 @@ public class GridView extends View {
     }
 
     public void setTile(int tile, int x, int y) {
+        if (grid == null) {
+            grid = new int[numColumns][numRows];
+        }
         grid[x][y] = tile;
     }
 
