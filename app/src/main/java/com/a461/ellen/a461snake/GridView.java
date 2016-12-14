@@ -40,8 +40,10 @@ public class GridView extends View {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         // leave some space for buttons and scoreboard on top
         h = h - TOP_OFFSET;
-        numColumns = (int) Math.floor(w / tileSize);
-        numRows = (int) Math.floor(h / tileSize);
+        //numColumns = (int) Math.floor(w / tileSize);
+        //numRows = (int) Math.floor(h / tileSize);
+        numColumns = 22;
+        numRows = 31;
 
         xpadding = ((w - (tileSize * numColumns)) / 2);
         ypadding = ((h - (tileSize * numRows)) / 2);

@@ -98,6 +98,8 @@ public class NetworksObject implements NetworkObservable, ThreadCallback {
     // for setting up initial game--request server send positions of both
     // snakes and apple given the size of the board
     public void sendInitialGame(int rows, int cols, ArrayList<Point> snakePos) {
+        // time rtt for first packet and set as movement delay
+
         String data = "requestgame";
         data += "\nr:" + rows + "\n" + "c:" + cols + "\r\n";
 
